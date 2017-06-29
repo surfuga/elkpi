@@ -12,6 +12,6 @@
     - { role: common-rpi }
     - { role: java-rpi }
     - { role: elasticsearch-rpi }
-     - { role: logstash-rpi }
+    - { role: logstash-rpi }
     - { role: kibana-rpi }
 
