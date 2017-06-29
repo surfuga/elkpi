@@ -1,0 +1,160 @@
+---
+- block:
+
+  - name: Install | download deb file
+    get_url:
+      url: "{{ logstash_deb_url }}"
+      dest: /home/{{ ansible_user }}
+
+
+  - name: Install | install from downloaded deb
+    apt:
+      deb: /home/{{ ansible_user }}/{{ logstash_deb_filename }}
+
+
+
+  - name: Install | enable logstash on boot
+    service:
+      name: logstash
+      state: started
+      enabled: yes
+
+
+  tags:
+    - install
+    - logstash
+
+- block:
+
+  - name: jffi | apt installs 1
+    apt: name={{ item }} state=latest update_cache=yes
+    with_items:
+      - ant
+      - texinfo
+      # - openjdk-8-jdk
+
+  - name: jffi | git clone
+    git:
+      repo: 'https://github.com/jnr/jffi.git'
+      dest: /home/{{ ansible_user}}/jffi/
+
+  - name: jffi | ant jar
+    shell: ant jar chdir=/home/{{ ansible_user}}/jffi/
+
+  - name: jffi | copy
+    copy:
+      remote_src: yes
+      src: /home/{{ ansible_user}}/jffi/build/jni/libjffi-1.2.so
+      dest: "{{ logstash_dir }}/vendor/jruby/lib/jni/arm-Linux"
+
+
+  tags:
+    - install
+    - logstash
+    - jffi
+
+- block:
+
+  - name: Config | geolitecity database
+    get_url:
+      url: "{{ maxmind_url }}"
+      dest: /etc/logstash/GeoLiteCity2.dat.gz
+      force: no
+
+  - name: Config | unarchive geolitecity db
+    unarchive:
+      remote_src: yes
+      src: /etc/logstash/GeoLiteCity2.dat.gz
+      dest: /etc/logstash/
+    register: unarchiveGeolitecity
+    ignore_errors: true
+
+  - name: Config | gzip decompress Geolitecity db
+    command: /bin/gzip -d /etc/logstash/GeoLiteCity2.dat.gz chdir=/etc/logstash creates=/etc/logstash/GeoLiteCity2
+    when: unarchiveGeolitecity|failed
+
+  - name: Config | create templates dir
+    file:
+      path: /etc/logstash/templates
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+
+  - name: Config | custom  template
+    copy:
+      src: intrusions.json
+      dest: /etc/logstash/templates/
+
+  - name: Config | elastic templates
+    copy:
+      src: elasticsearch-template.json
+      dest: /etc/logstash/templates/
+
+  - name: Config | configuration file
+    copy:
+      src: 40-router-input.conf
+      dest: /etc/logstash/conf.d/
+
+  - name: Config | upload lookup table file
+    copy:
+      src: service_names.yaml
+      dest: /tmp/service_names.yaml
+
+  - name: Confing | install logstash translate plugin
+    shell: ./logstash-plugin install logstash-filter-translate chdir=/usr/share/logstash/bin
+
+
+  - name: Config | jvm heap size  min
+    lineinfile:
+      dest: /etc/logstash/jvm.options
+      regexp: '^-Xms256m'
+      state: present
+      line: -Xms125m
+
+  - name: Config | jvm heap size max
+    lineinfile:
+      dest: /etc/logstash/jvm.options
+      regexp: '-Xmx1g'
+      state: present
+      line: -Xmx256m
+
+
+  - name: Install | enable logstash on boot
+    service:
+      name: logstash
+      state: started
+      enabled: yes
+
+
+
+  tags:
+    - configuration
+    - logstash
+    - geolitecity
+
+- block:
+
+  - name: Install iptables-persistent | install from apt repository
+    apt:
+      name: iptables-persistent
+      state: latest
+      update_cache: yes
+
+  - name: iptables | redirect
+    shell: iptables -t nat -A PREROUTING -i eth0 -p udp --dport 514 -j REDIRECT --to-port 6514
+
+  - name: iptables | install needed package
+    apt: name=iptables-persistent state=latest update_cache=yes
+    # must be done manually! Ncurses GUI!
+
+  - name: iptables | save iptables config
+    shell: /etc/init.d/iptables-persistent save
+
+  when: rpi_type == "rpi2"
+  tags:
+    - iptables
+
+
+# debug with
+# sudo /usr/share/logstash/bin/logstash  -l /var/log/logstash --path.settings /etc/logstash

@@ -1,0 +1,59 @@
+---
+- block:
+
+  # this method permits to use jvm -server
+  - name: Java | install Openjdk-8-jdk
+    apt:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+      - openjdk-8-jdk
+      - openjdk-8-jre
+    when: install_type == "openjdk"
+
+  - name: Java | update-alternatives select java 8 from openJdk
+    alternatives: name=java path=/usr/lib/jvm/java-8-openjdk-armhf/jre/bin/java
+    when: install_type == "openjdk"
+
+
+
+  - name: Java | manual download and install
+    get_url:
+      url: "{{ java8link }}"
+      headers: "Cookie:oraclelicense=accept-securebackup-cookie"
+      dest: /home/{{ ansible_user }}
+      force: no
+    when: install_type == "download-oracle"
+    # creates not supported
+    # creates: /home/{{ ansible_user }}/{{ java8link_filename }}
+
+  - name: Java | create /opt/jdk
+    file:
+      state: directory
+      path: /opt/jdk/{{ java8link_dirname }}
+    when: install_type == "download-oracle"
+
+  - name: Java | unzip/untar to /opt/jdk/jdk-XXX
+    unarchive:
+      remote_src: yes
+      src: /home/{{ ansible_user }}/{{ java8link_filename }}
+      dest: /opt/jdk/
+    when: install_type == "download-oracle"
+
+  - name: Java | correct java version selected
+    alternatives: name=java path=/opt/jdk/{{ java8link_dirname }}/bin/java link=/usr/bin/java
+    when: install_type == "download-oracle"
+
+  - name: Java | correct javac version selected
+    alternatives: name=javac path=/opt/jdk/{{ java8link_dirname }}/bin/javac link=/usr/bin/javac
+    when: install_type == "download-oracle"
+
+  - name: Java | apt oracle-java8-jdk
+    apt:
+      name: oracle-java8-jdk
+      state: latest
+    when: install_type == "apt-oracle"
+
+  tags:
+    - install
+    - java8

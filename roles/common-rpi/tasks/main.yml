@@ -1,0 +1,41 @@
+---
+- block:
+
+  - name: Installs | apt installs 1
+    apt: name={{ item }} state=latest update_cache=yes
+    with_items:
+      - git
+      - python-dev
+      - python-pip
+      - vim
+      - tar
+      - gzip
+    register: aptgetinstall01
+    tags:
+      - installs
+
+  - name: Installs | pip installs 1
+    pip: name={{ item }}
+    with_items:
+      - pexpect
+      - python-apt
+    when: aptgetinstall01|succeeded
+    register: piprequirements01
+    tags:
+      - installs
+
+
+  tags:
+    - install
+    - common
+
+
+
+
+
+
+
+
+
+
+

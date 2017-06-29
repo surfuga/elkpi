@@ -1,0 +1,27 @@
+---
+
+# install_type: openjdk
+install_type: download-oracle
+#install_type: apt-oracle
+
+rpi_type: rpi3 #rpi2
+
+logstash_dir: /usr/share/logstash
+
+java8link: http://download.oracle.com/otn-pub/java/jdk/8u131-b11/d54c1d3a095b4ff2b6607d096fa80163/jdk-8u131-linux-arm32-vfp-hflt.tar.gz
+java8link_filename: jdk-8u131-linux-arm32-vfp-hflt.tar.gz
+java8link_dirname: jdk1.8.0_131
+
+elasticsearch_deb_url: https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.4.2.deb
+elasticsearch_deb_filename: elasticsearch-5.4.2.deb
+
+logstash_deb_url: https://artifacts.elastic.co/downloads/logstash/logstash-5.4.2.deb
+logstash_deb_filename: logstash-5.4.2.deb
+
+maxmind_url: http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz
+
+kibana_deb_url: https://artifacts.elastic.co/downloads/kibana/kibana-5.4.3-linux-x86_64.tar.gz
+kibana_deb_filename: kibana-5.4.3-linux-x86_64.tar.gz
+kibana_folder: kibana-5.4.3-linux-x86_64
+
+node_type: "npm" #"apt" #"arm"

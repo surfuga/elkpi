@@ -1,0 +1,53 @@
+---
+- block:
+
+  - name: Install | install from apt repository
+    apt:
+      name: elasticsearch
+      state: latest
+      update_cache: yes
+    when: install_type == "apt"
+
+  - name: Install | download deb file
+    get_url:
+      url: "{{ elasticsearch_deb_url }}"
+      dest: /home/{{ ansible_user }}
+      force: no
+    when: install_type == "download-oracle"  or install_type == "openjdk"
+
+  - name: Install | install from downloaded deb
+    apt:
+      deb: /home/{{ ansible_user }}/{{ elasticsearch_deb_filename }}
+    when: install_type == "download-oracle" or install_type == "openjdk"
+
+  - name: Config | jvm heap size min
+    lineinfile:
+      dest: /etc/elasticsearch/jvm.options
+      regexp: '^-Xms500m'
+      state: present
+      line: -Xms256m
+
+  # - name: Config | jvm heap size max
+  #   lineinfile:
+  #     dest: /etc/elasticsearch/jvm.options
+  #     regexp: '^-Xmx500m'
+  #     state: present
+  #     line: -Xmx500m
+
+
+  - name: Install | enable elasticsearch on boot
+    service:
+      name: elasticsearch
+      state: started
+      enabled: yes
+
+  tags:
+    - install
+    - elasticsearch
+
+# - block:
+
+
+#   tags:
+#     - configuration
+#     - elasticsearch

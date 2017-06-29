@@ -1,0 +1,140 @@
+---
+- block:
+
+  - name: Install | node, install n with npm
+    shell: npm install -g n
+    when: node_type == "npm"
+
+  - name: Install | node, update node with n
+    shell: n lts
+    when: node_type == "npm"
+
+  # really needed??
+  - name: Install | npm install -g grunt
+    shell: npm install -g grunt
+    when: node_type == "npm"
+
+  - name: Install | install nodejs from apt repository
+    apt:
+      name: nodejs
+      state: latest
+      update_cache: yes
+    when: node_type == "apt"
+
+
+
+  - name: Install | download node-arm from herokuapp.com
+    get_url:
+      url: "http://node-arm.herokuapp.com/node_latest_armhf.deb"
+      dest: /home/{{ ansible_user }}/
+      force: no
+    when: node_type == "arm"
+
+  - name: Install | install node-arm from herokuapp.com
+    apt:
+      deb: /home/{{ ansible_user }}/node_latest_armhf.deb
+    when: node_type == "arm"
+
+
+  - name: Install | download kibana zip file
+    get_url:
+      url: "{{ kibana_deb_url }}"
+      dest: /home/{{ ansible_user }}
+      force: no
+
+  - name: Install | unarchive kibana install file
+    unarchive:
+      remote_src: yes
+      src: /home/{{ ansible_user }}/{{ kibana_deb_filename }}
+      dest: /opt/
+
+  - name: Install | softlink  kibana dir
+    file:
+      state: link
+      src: /opt/{{ kibana_folder }}
+      dest: /opt/kibana
+
+  - name: Install | backup origin node executable
+    copy:
+      src: /opt/kibana/node/bin/node
+      dest: /opt/kibana/node/bin/node.backup
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0775
+      remote_src: True
+
+  - name: Install | backup origin npm executable
+    copy:
+      src: /opt/kibana/node/bin/npm
+      dest: /opt/kibana/node/bin/npm.backup
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0775
+      remote_src: True
+
+  - name: Install | remove kibana node bin
+    file:
+      state: absent
+      dest: /opt/kibana/node/bin/node
+
+  - name: Install | remove kibana npm bin
+    file:
+      state: absent
+      dest: /opt/kibana/node/bin/npm
+
+  - name: Install | softlink  kibana node bin
+    file:
+      state: link
+      src: /usr/local/bin/node
+      dest: /opt/kibana/node/bin/node
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0775
+
+  - name: Install | softlink  kibana npm bin
+    file:
+      state: link
+      src: /usr/local/bin/npm
+      dest: /opt/kibana/node/bin/npm
+      owner: "{{ ansible_user }}"
+      group: "{{ ansible_user }}"
+      mode: 0775
+
+  - name: Install | exec npm kibana
+    shell:  npm install  chdir=/opt/kibana
+
+
+  - name: Service | upload  kibana service files
+    template: backup=yes dest=/etc/systemd/system/kibana.service src=kibana.service.j2 owner=root group=root mode=0755
+
+  - name: Service | environment file
+    template: backup=yes dest=/etc/default/kibana src=default_kibana.j2 owner=root group=root mode=0755
+
+
+  - name: Install | enable kibana on boot
+    service:
+      name: kibana
+      state: started
+      enabled: yes
+
+  tags:
+    - install
+    - kibana
+
+- block:
+  - name: Config | setup hostname
+    lineinfile:
+      line: "server.host: {{ ansible_host }}"
+      state: present
+      dest: /opt/kibana/config/kibana.yml
+
+  - name: Config | setup hostname
+    lineinfile:
+      line: "server.host: localhost"
+      state: absent
+      dest: /opt/kibana/config/kibana.yml
+
+
+  tags:
+    - configuration
+    - kibana

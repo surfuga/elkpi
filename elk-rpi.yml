@@ -1,0 +1,17 @@
+---
+#run with
+# ansible-playbook -i hosts elk-rpi.yml
+- hosts: rpi2
+  become: true
+  become_user: root
+  become_method: sudo
+  vars_files:
+    - vars/vars-rpi.yml
+  remote_user: "{{ ansible_user }}"
+  roles:
+    - { role: common-rpi }
+    - { role: java-rpi }
+    - { role: elasticsearch-rpi }
+     - { role: logstash-rpi }
+    - { role: kibana-rpi }
+
