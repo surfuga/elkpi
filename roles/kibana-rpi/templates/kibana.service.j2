@@ -4,9 +4,9 @@ Description=Kibana custom service unit
 [Service]
 Type=simple
 #EnvironmentFile=-/etc/default/kibana
-ExecStart=/opt/kibana/bin/kibana  "-c /opt/kibana/config/kibana.yml" >> /var/log/kibana.log 2>&1
+ExecStart=/opt/kibana/bin/kibana  "-c /opt/kibana/config/kibana.yml" 
 Restart=always
-WorkingDirectory=/
+WorkingDirectory=/opt/kibana/bin
 
 [Install]
 WantedBy=multi-user.target
